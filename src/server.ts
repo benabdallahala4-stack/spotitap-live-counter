@@ -6,12 +6,12 @@ import { registerPublicRoutes, type CountingPort } from './routes/publicRoutes.j
 export type ServerOptions = {
   counting: CountingPort;
   mqtt: MqttPublisher;
+  hashSecret: string;
 };
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: false,
-    trustProxy: true
+    logger: false
   });
 
   await app.register(cors, {
