@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createCountingService } from './counting.js';
-import type { CounterRepository } from '../repositories/counters.js';
+import type {
+  CounterRepository,
+  RecordScanWithOptionalOptimisticIncrementInput
+} from '../repositories/counters.js';
 
 function createRepository(overrides: Partial<CounterRepository> = {}): CounterRepository {
   return {
@@ -14,6 +17,45 @@ function createRepository(overrides: Partial<CounterRepository> = {}): CounterRe
     recordScanWithOptionalOptimisticIncrement: vi.fn(),
     ...overrides
   };
+}
+
+function implementAtomicScanFake(repo: CounterRepository, duplicate: boolean) {
+  vi.mocked(repo.recordScanWithOptionalOptimisticIncrement).mockImplementation(
+    async (input: RecordScanWithOptionalOptimisticIncrementInput) => {
+      const scan = await repo.createScanEvent({
+        counterId: input.counterId,
+        qrRouteId: input.qrRouteId,
+        fingerprintHash: input.fingerprintHash,
+        ipHash: input.ipHash,
+        userAgent: input.userAgent,
+        confidenceScore: duplicate ? input.duplicateConfidenceScore : input.qualifiedConfidenceScore
+      });
+
+      if (duplicate) {
+        return {
+          optimisticApplied: false,
+          target: await repo.getCounterDeviceTarget(input.counterId)
+        };
+      }
+
+      const optimistic = await repo.createOptimisticEvent({
+        counterId: input.counterId,
+        scanEventId: scan.id,
+        amount: input.optimisticAmount,
+        expiresAt: input.optimisticExpiresAt
+      });
+      const target = await repo.incrementCounterOptimisticDelta({
+        counterId: input.counterId,
+        amount: input.optimisticAmount
+      });
+
+      return {
+        optimisticApplied: true,
+        target,
+        optimisticEventId: optimistic.id
+      };
+    }
+  );
 }
 
 describe('createCountingService', () => {
@@ -39,17 +81,9 @@ describe('createCountingService', () => {
         counterId: 'counter-1',
         deviceId: 'device-1',
         displayedCount: 1284
-      }),
-      recordScanWithOptionalOptimisticIncrement: vi.fn().mockResolvedValue({
-        optimisticApplied: true,
-        target: {
-          counterId: 'counter-1',
-          deviceId: 'device-1',
-          displayedCount: 1284
-        },
-        optimisticEventId: 'opt-1'
       })
     });
+    implementAtomicScanFake(repo, false);
     const service = createCountingService(repo, {
       optimisticTtlMinutes: 60,
       fingerprintCooldownMinutes: 120
@@ -83,6 +117,24 @@ describe('createCountingService', () => {
       duplicateConfidenceScore: 20,
       qualifiedConfidenceScore: 85
     });
+    expect(repo.createScanEvent).toHaveBeenCalledWith({
+      counterId: 'counter-1',
+      qrRouteId: 'route-1',
+      fingerprintHash: 'fp-1',
+      ipHash: 'ip-1',
+      userAgent: 'vitest',
+      confidenceScore: 85
+    });
+    expect(repo.createOptimisticEvent).toHaveBeenCalledWith({
+      counterId: 'counter-1',
+      scanEventId: 'scan-1',
+      amount: 1,
+      expiresAt: new Date('2026-05-21T13:00:00.000Z')
+    });
+    expect(repo.incrementCounterOptimisticDelta).toHaveBeenCalledWith({
+      counterId: 'counter-1',
+      amount: 1
+    });
   });
 
   it('does not increment again during the fingerprint cooldown', async () => {
@@ -102,16 +154,9 @@ describe('createCountingService', () => {
         counterId: 'counter-1',
         deviceId: 'device-1',
         displayedCount: 1283
-      }),
-      recordScanWithOptionalOptimisticIncrement: vi.fn().mockResolvedValue({
-        optimisticApplied: false,
-        target: {
-          counterId: 'counter-1',
-          deviceId: 'device-1',
-          displayedCount: 1283
-        }
       })
     });
+    implementAtomicScanFake(repo, true);
     const service = createCountingService(repo, {
       optimisticTtlMinutes: 60,
       fingerprintCooldownMinutes: 120
@@ -139,7 +184,15 @@ describe('createCountingService', () => {
       duplicateConfidenceScore: 20,
       qualifiedConfidenceScore: 85
     });
-    expect(repo.getCounterDeviceTarget).not.toHaveBeenCalled();
+    expect(repo.createScanEvent).toHaveBeenCalledWith({
+      counterId: 'counter-1',
+      qrRouteId: 'route-1',
+      fingerprintHash: 'fp-1',
+      ipHash: 'ip-1',
+      userAgent: 'vitest',
+      confidenceScore: 20
+    });
+    expect(repo.getCounterDeviceTarget).toHaveBeenCalledWith('counter-1');
     expect(repo.createOptimisticEvent).not.toHaveBeenCalled();
     expect(repo.incrementCounterOptimisticDelta).not.toHaveBeenCalled();
   });
