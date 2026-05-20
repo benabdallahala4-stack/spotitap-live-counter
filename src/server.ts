@@ -1,10 +1,11 @@
 import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { MqttPublisher } from './services/mqttPublisher.js';
-import { registerPublicRoutes, type CountingPort } from './routes/publicRoutes.js';
+import { registerAdminRoutes, type AdminCountingPort } from './routes/adminRoutes.js';
+import { registerPublicRoutes } from './routes/publicRoutes.js';
 
 export type ServerOptions = {
-  counting: CountingPort;
+  counting: AdminCountingPort;
   mqtt: MqttPublisher;
   hashSecret: string;
   logger?: FastifyServerOptions['logger'];
@@ -24,6 +25,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
   app.get('/health', async () => ({ ok: true }));
 
   await registerPublicRoutes(app, options);
+  await registerAdminRoutes(app, options);
 
   app.addHook('onClose', async () => {
     await options.mqtt.close();

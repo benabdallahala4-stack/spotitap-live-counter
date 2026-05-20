@@ -52,6 +52,10 @@ export function createCountingService(repo: CounterRepository, options: Counting
         displayedCount: scanResult.target?.displayedCount,
         optimisticEventId: scanResult.optimisticEventId
       };
+    },
+
+    async getCounterDeviceTarget(counterId: string) {
+      return repo.getCounterDeviceTarget(counterId);
     }
   };
 }
