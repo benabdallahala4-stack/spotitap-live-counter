@@ -65,7 +65,12 @@ describe('createCountingService', () => {
         platformDeepLink: 'instagram://user?username=spotitap'
       }),
       hasRecentScanForFingerprint: vi.fn().mockResolvedValue(true),
-      createScanEvent: vi.fn().mockResolvedValue({ id: 'scan-1' })
+      createScanEvent: vi.fn().mockResolvedValue({ id: 'scan-1' }),
+      getCounterDeviceTarget: vi.fn().mockResolvedValue({
+        counterId: 'counter-1',
+        deviceId: 'device-1',
+        displayedCount: 1283
+      })
     });
     const service = createCountingService(repo, {
       optimisticTtlMinutes: 60,
@@ -80,6 +85,9 @@ describe('createCountingService', () => {
     });
 
     expect(result.optimisticApplied).toBe(false);
+    expect(result.deviceId).toBe('device-1');
+    expect(result.displayedCount).toBe(1283);
+    expect(repo.getCounterDeviceTarget).toHaveBeenCalledWith('counter-1');
     expect(repo.createOptimisticEvent).not.toHaveBeenCalled();
     expect(repo.incrementCounterOptimisticDelta).not.toHaveBeenCalled();
   });

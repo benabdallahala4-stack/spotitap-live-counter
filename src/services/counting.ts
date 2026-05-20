@@ -47,11 +47,15 @@ export function createCountingService(repo: CounterRepository, options: Counting
       });
 
       if (duplicate) {
+        const target = await repo.getCounterDeviceTarget(route.counterId);
+
         return {
           destinationUrl: route.destinationUrl,
           platformDeepLink: route.platformDeepLink,
           optimisticApplied: false,
-          counterId: route.counterId
+          counterId: route.counterId,
+          deviceId: target?.deviceId,
+          displayedCount: target?.displayedCount
         };
       }
 
