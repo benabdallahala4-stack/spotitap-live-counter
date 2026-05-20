@@ -17,16 +17,20 @@ export function hashScanValue(secret: string, value: string): string {
   return crypto.createHmac('sha256', secret).update(value).digest('hex');
 }
 
-function validateRedirectUrl(destinationUrl: string): URL | undefined {
+type RedirectValidation =
+  | { ok: true; url: URL }
+  | { ok: false; protocol?: string; error?: unknown };
+
+function validateRedirectUrl(destinationUrl: string): RedirectValidation {
   try {
     const url = new URL(destinationUrl);
     if (url.protocol === 'http:' || url.protocol === 'https:') {
-      return url;
+      return { ok: true, url };
     }
 
-    return undefined;
-  } catch {
-    return undefined;
+    return { ok: false, protocol: url.protocol };
+  } catch (error) {
+    return { ok: false, error };
   }
 }
 
@@ -59,10 +63,10 @@ export async function registerPublicRoutes(
       return reply.code(500).send({ error: 'scan_failed' });
     }
 
-    const redirectUrl = validateRedirectUrl(result.destinationUrl);
-    if (!redirectUrl) {
+    const redirect = validateRedirectUrl(result.destinationUrl);
+    if (!redirect.ok) {
       request.log.error(
-        { slug: request.params.slug, destinationUrl: result.destinationUrl },
+        { slug: request.params.slug, protocol: redirect.protocol, err: redirect.error },
         'Invalid QR redirect destination URL'
       );
       return reply.code(502).send({ error: 'invalid_destination_url' });
@@ -97,6 +101,6 @@ export async function registerPublicRoutes(
       });
     }
 
-    return reply.redirect(redirectUrl.toString());
+    return reply.redirect(redirect.url.toString());
   });
 }

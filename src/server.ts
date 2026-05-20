@@ -1,5 +1,5 @@
 import cors from '@fastify/cors';
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { MqttPublisher } from './services/mqttPublisher.js';
 import { registerPublicRoutes, type CountingPort } from './routes/publicRoutes.js';
 
@@ -7,11 +7,14 @@ export type ServerOptions = {
   counting: CountingPort;
   mqtt: MqttPublisher;
   hashSecret: string;
+  logger?: FastifyServerOptions['logger'];
+  trustProxy?: FastifyServerOptions['trustProxy'];
 };
 
 export async function createServer(options: ServerOptions): Promise<FastifyInstance> {
   const app = Fastify({
-    logger: false
+    logger: options.logger ?? true,
+    trustProxy: options.trustProxy ?? false
   });
 
   await app.register(cors, {

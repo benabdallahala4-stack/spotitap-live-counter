@@ -1,5 +1,12 @@
 import { createServer, type ServerOptions } from '../server.js';
 
-export async function createTestApp(options: ServerOptions) {
-  return createServer(options);
+type TestAppOptions = Omit<ServerOptions, 'logger' | 'trustProxy'> &
+  Partial<Pick<ServerOptions, 'logger' | 'trustProxy'>>;
+
+export async function createTestApp(options: TestAppOptions) {
+  return createServer({
+    logger: false,
+    trustProxy: false,
+    ...options
+  });
 }
