@@ -15,6 +15,25 @@ export type CounterDeviceTarget = {
   displayedCount: number;
 };
 
+export type RecordScanWithOptionalOptimisticIncrementInput = {
+  counterId: string;
+  qrRouteId: string;
+  fingerprintHash: string;
+  ipHash: string;
+  userAgent: string;
+  cooldownSince: Date;
+  optimisticExpiresAt: Date;
+  optimisticAmount: number;
+  duplicateConfidenceScore: number;
+  qualifiedConfidenceScore: number;
+};
+
+export type RecordScanWithOptionalOptimisticIncrementResult = {
+  optimisticApplied: boolean;
+  target: CounterDeviceTarget | null;
+  optimisticEventId?: string;
+};
+
 export type CounterRepository = {
   findQrRouteBySlug(slug: string): Promise<QrRouteRecord | null>;
   hasRecentScanForFingerprint(input: {
@@ -49,6 +68,9 @@ export type CounterRepository = {
     optimisticDelta: number;
     rawPayload: Record<string, unknown>;
   }): Promise<void>;
+  recordScanWithOptionalOptimisticIncrement(
+    input: RecordScanWithOptionalOptimisticIncrementInput
+  ): Promise<RecordScanWithOptionalOptimisticIncrementResult>;
 };
 
 export function createCounterRepository(db: DbClient): CounterRepository {
@@ -148,6 +170,98 @@ export function createCounterRepository(db: DbClient): CounterRepository {
 
     async saveCountSnapshot(input) {
       await db.insert(countSnapshots).values(input);
+    },
+
+    async recordScanWithOptionalOptimisticIncrement(input) {
+      return db.transaction(async (tx) => {
+        await tx.execute(
+          sql`select pg_advisory_xact_lock(hashtext(${input.counterId}), hashtext(${input.fingerprintHash}))`
+        );
+
+        const [recentScan] = await tx
+          .select({ id: scanEvents.id })
+          .from(scanEvents)
+          .where(
+            and(
+              eq(scanEvents.counterId, input.counterId),
+              eq(scanEvents.fingerprintHash, input.fingerprintHash),
+              gt(scanEvents.createdAt, input.cooldownSince)
+            )
+          )
+          .orderBy(desc(scanEvents.createdAt))
+          .limit(1);
+        const duplicate = Boolean(recentScan);
+
+        const [scan] = await tx
+          .insert(scanEvents)
+          .values({
+            counterId: input.counterId,
+            qrRouteId: input.qrRouteId,
+            fingerprintHash: input.fingerprintHash,
+            ipHash: input.ipHash,
+            userAgent: input.userAgent,
+            confidenceScore: duplicate
+              ? input.duplicateConfidenceScore
+              : input.qualifiedConfidenceScore
+          })
+          .returning({ id: scanEvents.id });
+        if (!scan) {
+          throw new Error('Failed to create scan event');
+        }
+
+        if (duplicate) {
+          const [target] = await tx
+            .select({
+              counterId: counters.id,
+              deviceId: counters.deviceId,
+              displayedCount: counters.displayedCount
+            })
+            .from(counters)
+            .where(eq(counters.id, input.counterId))
+            .limit(1);
+
+          return {
+            optimisticApplied: false,
+            target: target ?? null
+          };
+        }
+
+        const [event] = await tx
+          .insert(optimisticEvents)
+          .values({
+            counterId: input.counterId,
+            scanEventId: scan.id,
+            amount: input.optimisticAmount,
+            expiresAt: input.optimisticExpiresAt
+          })
+          .returning({ id: optimisticEvents.id });
+        if (!event) {
+          throw new Error('Failed to create optimistic event');
+        }
+
+        const [target] = await tx
+          .update(counters)
+          .set({
+            optimisticDelta: sql`${counters.optimisticDelta} + ${input.optimisticAmount}`,
+            displayedCount: sql`${counters.displayedCount} + ${input.optimisticAmount}`,
+            updatedAt: new Date()
+          })
+          .where(eq(counters.id, input.counterId))
+          .returning({
+            counterId: counters.id,
+            deviceId: counters.deviceId,
+            displayedCount: counters.displayedCount
+          });
+        if (!target) {
+          throw new Error(`Counter not found: ${input.counterId}`);
+        }
+
+        return {
+          optimisticApplied: true,
+          target,
+          optimisticEventId: event.id
+        };
+      });
     }
   };
 }

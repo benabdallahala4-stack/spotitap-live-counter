@@ -30,55 +30,27 @@ export function createCountingService(repo: CounterRepository, options: Counting
         throw new Error(`QR route not found: ${input.slug}`);
       }
 
-      const cooldownSince = new Date(Date.now() - options.fingerprintCooldownMinutes * 60_000);
-      const duplicate = await repo.hasRecentScanForFingerprint({
-        counterId: route.counterId,
-        fingerprintHash: input.fingerprintHash,
-        since: cooldownSince
-      });
-
-      const scan = await repo.createScanEvent({
+      const scanResult = await repo.recordScanWithOptionalOptimisticIncrement({
         counterId: route.counterId,
         qrRouteId: route.id,
         fingerprintHash: input.fingerprintHash,
         ipHash: input.ipHash,
         userAgent: input.userAgent,
-        confidenceScore: duplicate ? 20 : 85
-      });
-
-      if (duplicate) {
-        const target = await repo.getCounterDeviceTarget(route.counterId);
-
-        return {
-          destinationUrl: route.destinationUrl,
-          platformDeepLink: route.platformDeepLink,
-          optimisticApplied: false,
-          counterId: route.counterId,
-          deviceId: target?.deviceId,
-          displayedCount: target?.displayedCount
-        };
-      }
-
-      const expiresAt = new Date(Date.now() + options.optimisticTtlMinutes * 60_000);
-      const optimistic = await repo.createOptimisticEvent({
-        counterId: route.counterId,
-        scanEventId: scan.id,
-        amount: 1,
-        expiresAt
-      });
-      const target = await repo.incrementCounterOptimisticDelta({
-        counterId: route.counterId,
-        amount: 1
+        cooldownSince: new Date(Date.now() - options.fingerprintCooldownMinutes * 60_000),
+        optimisticExpiresAt: new Date(Date.now() + options.optimisticTtlMinutes * 60_000),
+        optimisticAmount: 1,
+        duplicateConfidenceScore: 20,
+        qualifiedConfidenceScore: 85
       });
 
       return {
         destinationUrl: route.destinationUrl,
         platformDeepLink: route.platformDeepLink,
-        optimisticApplied: true,
+        optimisticApplied: scanResult.optimisticApplied,
         counterId: route.counterId,
-        deviceId: target.deviceId,
-        displayedCount: target.displayedCount,
-        optimisticEventId: optimistic.id
+        deviceId: scanResult.target?.deviceId,
+        displayedCount: scanResult.target?.displayedCount,
+        optimisticEventId: scanResult.optimisticEventId
       };
     }
   };
