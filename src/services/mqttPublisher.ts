@@ -27,13 +27,13 @@ export type MqttPublisher = {
 };
 
 function assertSafeTopicSegment(name: string, value: string): void {
-  if (!SAFE_TOPIC_SEGMENT.test(value)) {
+  if (typeof value !== 'string' || !SAFE_TOPIC_SEGMENT.test(value)) {
     throw new Error(`${name} must be a non-empty safe topic segment`);
   }
 }
 
 function assertValidTarget(target: number): void {
-  if (!Number.isFinite(target) || !Number.isInteger(target) || target < 0) {
+  if (!Number.isFinite(target) || !Number.isSafeInteger(target) || target < 0) {
     throw new Error('target must be a finite non-negative integer');
   }
 }
@@ -146,6 +146,11 @@ export function createMqttPublisher(options: {
       await new Promise<void>((resolve, reject) => {
         let settled = false;
         const timeout = setTimeout(() => {
+          try {
+            client.end(true);
+          } catch {
+            // Preserve the timeout failure while still attempting forced cleanup.
+          }
           settle(new Error(`MQTT close timed out after ${closeTimeoutMs}ms`));
         }, closeTimeoutMs);
         const settle = (error?: Error) => {
