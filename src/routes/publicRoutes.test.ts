@@ -22,7 +22,8 @@ function createCountingResult(overrides: Record<string, unknown> = {}) {
 function createCounting(overrides: Record<string, unknown> = {}) {
   return {
     recordQrScan: vi.fn().mockResolvedValue(createCountingResult(overrides)),
-    getCounterDeviceTarget: vi.fn()
+    getCounterDeviceTarget: vi.fn(),
+    configureCounterSocialTarget: vi.fn()
   };
 }
 
@@ -132,7 +133,8 @@ describe('GET /r/:slug', () => {
     const mqtt = new FakeMqttPublisher();
     const counting = {
       recordQrScan: vi.fn().mockRejectedValue(new Error('QR route not found: cafe-demo')),
-      getCounterDeviceTarget: vi.fn()
+      getCounterDeviceTarget: vi.fn(),
+      configureCounterSocialTarget: vi.fn()
     };
     const app = await createTestApp({ counting, mqtt, hashSecret });
 

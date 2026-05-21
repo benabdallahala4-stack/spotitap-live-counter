@@ -9,7 +9,8 @@ const woocommerceWebhookSecret = 'test-woocommerce-webhook-secret';
 function createCounting() {
   return {
     recordQrScan: vi.fn(),
-    getCounterDeviceTarget: vi.fn()
+    getCounterDeviceTarget: vi.fn(),
+    configureCounterSocialTarget: vi.fn()
   };
 }
 

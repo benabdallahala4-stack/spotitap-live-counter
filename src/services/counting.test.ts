@@ -14,6 +14,7 @@ function createRepository(overrides: Partial<CounterRepository> = {}): CounterRe
     incrementCounterOptimisticDelta: vi.fn(),
     getCounterDeviceTarget: vi.fn(),
     saveCountSnapshot: vi.fn(),
+    configureCounterSocialTarget: vi.fn(),
     recordScanWithOptionalOptimisticIncrement: vi.fn(),
     ...overrides
   };
@@ -195,5 +196,36 @@ describe('createCountingService', () => {
     expect(repo.getCounterDeviceTarget).toHaveBeenCalledWith('counter-1');
     expect(repo.createOptimisticEvent).not.toHaveBeenCalled();
     expect(repo.incrementCounterOptimisticDelta).not.toHaveBeenCalled();
+  });
+
+  it('delegates social target configuration to the repository', async () => {
+    const repo = createRepository({
+      configureCounterSocialTarget: vi.fn().mockResolvedValue({
+        counterId: 'counter-1',
+        destinationUrl: 'https://instagram.com/spotitap',
+        platformDeepLink: 'instagram://user?username=spotitap'
+      })
+    });
+    const service = createCountingService(repo, {
+      optimisticTtlMinutes: 60,
+      fingerprintCooldownMinutes: 120
+    });
+
+    const result = await service.configureCounterSocialTarget({
+      counterId: 'counter-1',
+      destinationUrl: 'https://instagram.com/spotitap',
+      platformDeepLink: 'instagram://user?username=spotitap'
+    });
+
+    expect(result).toEqual({
+      counterId: 'counter-1',
+      destinationUrl: 'https://instagram.com/spotitap',
+      platformDeepLink: 'instagram://user?username=spotitap'
+    });
+    expect(repo.configureCounterSocialTarget).toHaveBeenCalledWith({
+      counterId: 'counter-1',
+      destinationUrl: 'https://instagram.com/spotitap',
+      platformDeepLink: 'instagram://user?username=spotitap'
+    });
   });
 });

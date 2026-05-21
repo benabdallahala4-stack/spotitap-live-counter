@@ -15,6 +15,18 @@ export type CounterDeviceTarget = {
   displayedCount: number;
 };
 
+export type ConfigureCounterSocialTargetInput = {
+  counterId: string;
+  destinationUrl: string;
+  platformDeepLink: string;
+};
+
+export type ConfigureCounterSocialTargetResult = {
+  counterId: string;
+  destinationUrl: string;
+  platformDeepLink: string;
+};
+
 export type RecordScanWithOptionalOptimisticIncrementInput = {
   counterId: string;
   qrRouteId: string;
@@ -68,6 +80,9 @@ export type CounterRepository = {
     optimisticDelta: number;
     rawPayload: Record<string, unknown>;
   }): Promise<void>;
+  configureCounterSocialTarget(
+    input: ConfigureCounterSocialTargetInput
+  ): Promise<ConfigureCounterSocialTargetResult | null>;
   recordScanWithOptionalOptimisticIncrement(
     input: RecordScanWithOptionalOptimisticIncrementInput
   ): Promise<RecordScanWithOptionalOptimisticIncrementResult>;
@@ -170,6 +185,40 @@ export function createCounterRepository(db: DbClient): CounterRepository {
 
     async saveCountSnapshot(input) {
       await db.insert(countSnapshots).values(input);
+    },
+
+    async configureCounterSocialTarget(input) {
+      return db.transaction(async (tx) => {
+        const [counter] = await tx
+          .update(counters)
+          .set({
+            status: 'active',
+            updatedAt: new Date()
+          })
+          .where(eq(counters.id, input.counterId))
+          .returning({ id: counters.id });
+        if (!counter) {
+          return null;
+        }
+
+        const [route] = await tx
+          .update(qrRoutes)
+          .set({
+            destinationUrl: input.destinationUrl,
+            platformDeepLink: input.platformDeepLink
+          })
+          .where(eq(qrRoutes.counterId, input.counterId))
+          .returning({
+            counterId: qrRoutes.counterId,
+            destinationUrl: qrRoutes.destinationUrl,
+            platformDeepLink: qrRoutes.platformDeepLink
+          });
+        if (!route) {
+          return null;
+        }
+
+        return route;
+      });
     },
 
     async recordScanWithOptionalOptimisticIncrement(input) {

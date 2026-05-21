@@ -56,6 +56,10 @@ export function createCountingService(repo: CounterRepository, options: Counting
 
     async getCounterDeviceTarget(counterId: string) {
       return repo.getCounterDeviceTarget(counterId);
+    },
+
+    async configureCounterSocialTarget(input: Parameters<typeof repo.configureCounterSocialTarget>[0]) {
+      return repo.configureCounterSocialTarget(input);
     }
   };
 }
