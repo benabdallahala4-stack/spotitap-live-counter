@@ -15,7 +15,22 @@ export type AdminCountingPort = CountingPort & {
 export type AdminRoutesOptions = {
   counting: AdminCountingPort;
   mqtt: MqttPublisher;
+  adminToken: string;
 };
+
+function getRequestToken(request: { headers: Record<string, string | string[] | undefined> }): string {
+  const authorization = request.headers.authorization;
+  if (typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
+    return authorization.slice('Bearer '.length).trim();
+  }
+
+  const headerToken = request.headers['x-admin-token'];
+  if (typeof headerToken === 'string') {
+    return headerToken.trim();
+  }
+
+  return '';
+}
 
 export async function registerAdminRoutes(
   app: FastifyInstance,
@@ -24,6 +39,10 @@ export async function registerAdminRoutes(
   app.post<{ Params: { counterId: string } }>(
     '/admin/counters/:counterId/test-count',
     async (request, reply) => {
+      if (getRequestToken(request) !== options.adminToken) {
+        return reply.code(401).send({ error: 'unauthorized' });
+      }
+
       const body = testCountBodySchema.safeParse(request.body);
       if (!body.success) {
         return reply.code(400).send({ error: 'invalid_target' });

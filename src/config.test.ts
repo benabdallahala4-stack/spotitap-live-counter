@@ -9,6 +9,7 @@ describe('readConfig', () => {
       DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
       MQTT_URL: 'mqtt://localhost:1883',
       HASH_SECRET: '0123456789abcdef',
+      ADMIN_TOKEN: '0123456789abcdef01234567',
       PUBLIC_BASE_URL: 'http://localhost:4999'
     });
 
@@ -20,6 +21,7 @@ describe('readConfig', () => {
       mqttUsername: '',
       mqttPassword: '',
       hashSecret: '0123456789abcdef',
+      adminToken: '0123456789abcdef01234567',
       publicBaseUrl: 'http://localhost:4999'
     });
   });
@@ -31,6 +33,7 @@ describe('readConfig', () => {
         DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
         MQTT_URL: 'mqtt://localhost:1883',
         HASH_SECRET: '0123456789abcdef',
+        ADMIN_TOKEN: '0123456789abcdef01234567',
         PUBLIC_BASE_URL: 'http://localhost:4999'
       })
     ).toThrow(/PORT/);
@@ -42,8 +45,21 @@ describe('readConfig', () => {
         DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
         MQTT_URL: 'mqtt://localhost:1883',
         HASH_SECRET: 'too-short',
+        ADMIN_TOKEN: '0123456789abcdef01234567',
         PUBLIC_BASE_URL: 'http://localhost:4999'
       })
     ).toThrow(/HASH_SECRET/);
+  });
+
+  it('requires a meaningful admin token', () => {
+    expect(() =>
+      readConfig({
+        DATABASE_URL: 'postgres://user:pass@localhost:5432/db',
+        MQTT_URL: 'mqtt://localhost:1883',
+        HASH_SECRET: '0123456789abcdef',
+        ADMIN_TOKEN: 'too-short',
+        PUBLIC_BASE_URL: 'http://localhost:4999'
+      })
+    ).toThrow(/ADMIN_TOKEN/);
   });
 });

@@ -24,6 +24,9 @@ describe('POST /admin/counters/:counterId/test-count', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/admin/counters/counter-1/test-count',
+      headers: {
+        authorization: 'Bearer test-admin-token-0123456789'
+      },
       payload: {
         target: 1300
       }
@@ -46,6 +49,27 @@ describe('POST /admin/counters/:counterId/test-count', () => {
         sentAt: expect.any(Date)
       }
     ]);
+
+    await app.close();
+  });
+
+  it('rejects admin test-count requests without the admin token', async () => {
+    const mqtt = new FakeMqttPublisher();
+    const counting = createCounting();
+    const app = await createTestApp({ counting, mqtt, hashSecret });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/admin/counters/counter-1/test-count',
+      payload: {
+        target: 1300
+      }
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json()).toEqual({ error: 'unauthorized' });
+    expect(counting.getCounterDeviceTarget).not.toHaveBeenCalled();
+    expect(mqtt.setCountCommands).toEqual([]);
 
     await app.close();
   });

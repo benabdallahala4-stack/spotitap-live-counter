@@ -8,6 +8,7 @@ const configSchema = z.object({
   MQTT_USERNAME: z.string().default(''),
   MQTT_PASSWORD: z.string().default(''),
   HASH_SECRET: z.string().trim().min(16),
+  ADMIN_TOKEN: z.string().trim().min(24),
   PUBLIC_BASE_URL: z.string().url()
 });
 
@@ -19,6 +20,7 @@ export type AppConfig = {
   mqttUsername: string;
   mqttPassword: string;
   hashSecret: string;
+  adminToken: string;
   publicBaseUrl: string;
 };
 
@@ -33,6 +35,7 @@ export function readConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     mqttUsername: parsed.MQTT_USERNAME,
     mqttPassword: parsed.MQTT_PASSWORD,
     hashSecret: parsed.HASH_SECRET,
+    adminToken: parsed.ADMIN_TOKEN,
     publicBaseUrl: parsed.PUBLIC_BASE_URL
   };
 }

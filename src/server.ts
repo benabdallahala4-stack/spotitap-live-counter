@@ -8,6 +8,7 @@ export type ServerOptions = {
   counting: AdminCountingPort;
   mqtt: MqttPublisher;
   hashSecret: string;
+  adminToken: string;
   logger?: FastifyServerOptions['logger'];
   trustProxy?: FastifyServerOptions['trustProxy'];
 };
