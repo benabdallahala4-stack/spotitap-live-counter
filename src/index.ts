@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createDb, createPool } from './db/client.js';
 import { readConfig } from './config.js';
 import { createCounterRepository } from './repositories/counters.js';
+import { createDeviceAdminRepository } from './repositories/devices.js';
 import { createProvisioningRepository } from './repositories/provisioning.js';
 import { createCountingService } from './services/counting.js';
 import { createMqttPublisher } from './services/mqttPublisher.js';
@@ -13,6 +14,7 @@ async function main() {
   const pool = createPool(config.databaseUrl);
   const db = createDb(pool);
   const repo = createCounterRepository(db);
+  const devices = createDeviceAdminRepository(db);
   const provisioningRepo = createProvisioningRepository(db);
   const counting = createCountingService(repo, {
     optimisticTtlMinutes: 60,
@@ -28,6 +30,7 @@ async function main() {
   });
   const app = await createServer({
     counting,
+    devices,
     provisioning,
     mqtt,
     hashSecret: config.hashSecret,
