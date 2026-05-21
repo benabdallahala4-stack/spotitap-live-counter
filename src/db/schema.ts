@@ -13,6 +13,14 @@ export const customers = pgTable('customers', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 });
 
+export const orders = pgTable('orders', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id').notNull().references(() => customers.id),
+  wooOrderId: text('woo_order_id').notNull().unique(),
+  status: text('status').notNull().default('provisioned'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+});
+
 export const devices = pgTable('devices', {
   id: uuid('id').primaryKey().defaultRandom(),
   serial: text('serial').notNull().unique(),

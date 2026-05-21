@@ -29,6 +29,14 @@ CREATE TABLE IF NOT EXISTS customers (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS orders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id uuid NOT NULL REFERENCES customers(id),
+  woo_order_id text NOT NULL UNIQUE,
+  status text NOT NULL DEFAULT 'provisioned',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS devices (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   serial text NOT NULL UNIQUE,

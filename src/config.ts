@@ -9,6 +9,7 @@ const configSchema = z.object({
   MQTT_PASSWORD: z.string().default(''),
   HASH_SECRET: z.string().trim().min(16),
   ADMIN_TOKEN: z.string().trim().min(24),
+  WOOCOMMERCE_WEBHOOK_SECRET: z.string().trim().min(24),
   PUBLIC_BASE_URL: z.string().url()
 });
 
@@ -21,6 +22,7 @@ export type AppConfig = {
   mqttPassword: string;
   hashSecret: string;
   adminToken: string;
+  woocommerceWebhookSecret: string;
   publicBaseUrl: string;
 };
 
@@ -36,6 +38,7 @@ export function readConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
     mqttPassword: parsed.MQTT_PASSWORD,
     hashSecret: parsed.HASH_SECRET,
     adminToken: parsed.ADMIN_TOKEN,
+    woocommerceWebhookSecret: parsed.WOOCOMMERCE_WEBHOOK_SECRET,
     publicBaseUrl: parsed.PUBLIC_BASE_URL
   };
 }
