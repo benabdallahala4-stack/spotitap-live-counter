@@ -60,6 +60,14 @@ export function createCountingService(repo: CounterRepository, options: Counting
 
     async configureCounterSocialTarget(input: Parameters<typeof repo.configureCounterSocialTarget>[0]) {
       return repo.configureCounterSocialTarget(input);
+    },
+
+    async setVerifiedCount(input: Parameters<typeof repo.setVerifiedCount>[0]) {
+      return repo.setVerifiedCount(input);
+    },
+
+    async listPrototypeTargets() {
+      return repo.listPrototypeTargets();
     }
   };
 }

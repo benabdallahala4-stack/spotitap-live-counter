@@ -1,6 +1,6 @@
 import { and, desc, eq, gt, sql } from 'drizzle-orm';
 import type { DbClient } from '../db/client.js';
-import { counters, countSnapshots, optimisticEvents, qrRoutes, scanEvents } from '../db/schema.js';
+import { counters, countSnapshots, devices, optimisticEvents, qrRoutes, scanEvents } from '../db/schema.js';
 
 export type QrRouteRecord = {
   id: string;
@@ -25,6 +25,33 @@ export type ConfigureCounterSocialTargetResult = {
   counterId: string;
   destinationUrl: string;
   platformDeepLink: string;
+};
+
+export type SetVerifiedCountInput = {
+  counterId: string;
+  verifiedCount: number;
+  source: string;
+  rawPayload: Record<string, unknown>;
+};
+
+export type SetVerifiedCountResult = {
+  counterId: string;
+  deviceId: string;
+  displayedCount: number;
+  optimisticDelta: number;
+};
+
+export type PrototypeTarget = {
+  counterId: string;
+  label: string;
+  platform: 'instagram' | 'facebook' | 'tiktok';
+  status: 'reserved' | 'active' | 'paused';
+  verifiedCount: number;
+  optimisticDelta: number;
+  displayedCount: number;
+  deviceId: string;
+  deviceSerial: string;
+  deviceStatus: 'manufactured' | 'claimed' | 'online' | 'offline';
 };
 
 export type RecordScanWithOptionalOptimisticIncrementInput = {
@@ -83,6 +110,8 @@ export type CounterRepository = {
   configureCounterSocialTarget(
     input: ConfigureCounterSocialTargetInput
   ): Promise<ConfigureCounterSocialTargetResult | null>;
+  setVerifiedCount(input: SetVerifiedCountInput): Promise<SetVerifiedCountResult | null>;
+  listPrototypeTargets(): Promise<PrototypeTarget[]>;
   recordScanWithOptionalOptimisticIncrement(
     input: RecordScanWithOptionalOptimisticIncrementInput
   ): Promise<RecordScanWithOptionalOptimisticIncrementResult>;
@@ -219,6 +248,59 @@ export function createCounterRepository(db: DbClient): CounterRepository {
 
         return route;
       });
+    },
+
+    async setVerifiedCount(input) {
+      return db.transaction(async (tx) => {
+        const [updated] = await tx
+          .update(counters)
+          .set({
+            verifiedCount: input.verifiedCount,
+            optimisticDelta: 0,
+            displayedCount: input.verifiedCount,
+            updatedAt: new Date()
+          })
+          .where(eq(counters.id, input.counterId))
+          .returning({
+            counterId: counters.id,
+            deviceId: counters.deviceId,
+            displayedCount: counters.displayedCount,
+            optimisticDelta: counters.optimisticDelta
+          });
+        if (!updated) {
+          return null;
+        }
+
+        await tx.insert(countSnapshots).values({
+          counterId: input.counterId,
+          source: input.source,
+          verifiedCount: input.verifiedCount,
+          displayedCount: input.verifiedCount,
+          optimisticDelta: 0,
+          rawPayload: input.rawPayload
+        });
+
+        return updated;
+      });
+    },
+
+    async listPrototypeTargets() {
+      return db
+        .select({
+          counterId: counters.id,
+          label: counters.label,
+          platform: counters.platform,
+          status: counters.status,
+          verifiedCount: counters.verifiedCount,
+          optimisticDelta: counters.optimisticDelta,
+          displayedCount: counters.displayedCount,
+          deviceId: devices.id,
+          deviceSerial: devices.serial,
+          deviceStatus: devices.status
+        })
+        .from(counters)
+        .innerJoin(devices, eq(counters.deviceId, devices.id))
+        .orderBy(counters.label);
     },
 
     async recordScanWithOptionalOptimisticIncrement(input) {

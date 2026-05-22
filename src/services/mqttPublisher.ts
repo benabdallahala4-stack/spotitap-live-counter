@@ -5,7 +5,7 @@ const DEFAULT_CONNECT_TIMEOUT_MS = 5_000;
 const DEFAULT_PUBLISH_TIMEOUT_MS = 5_000;
 const DEFAULT_CLOSE_TIMEOUT_MS = 5_000;
 
-export type SetCountReason = 'optimistic_scan' | 'admin_test' | 'verified_sync';
+export type SetCountReason = 'optimistic_scan' | 'admin_test' | 'verified_sync' | 'verified_count';
 
 export type SetCountCommand = {
   deviceId: string;

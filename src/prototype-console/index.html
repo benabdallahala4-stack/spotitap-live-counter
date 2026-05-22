@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spotitap Prototype Console</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7f8;
+      --surface: #ffffff;
+      --surface-2: #eef3f4;
+      --ink: #172124;
+      --muted: #607075;
+      --line: #d8e1e4;
+      --accent: #0d9488;
+      --accent-strong: #0f766e;
+      --danger: #be123c;
+      --warning: #b45309;
+      --shadow: 0 18px 50px rgba(23, 33, 36, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      position: sticky;
+      top: 0;
+      z-index: 3;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 240px;
+    }
+
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: white;
+      font-weight: 800;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .token-box {
+      display: grid;
+      grid-template-columns: minmax(220px, 360px) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      padding: 9px 11px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 94px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.14);
+    }
+
+    .btn {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      color: var(--ink);
+      padding: 9px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      border-color: #b9c8cc;
+      background: #f8fbfb;
+    }
+
+    .btn-primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+    }
+
+    .btn-primary:hover {
+      border-color: var(--accent-strong);
+      background: var(--accent-strong);
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 280px minmax(420px, 1fr) 340px;
+      gap: 16px;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .panel-head {
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .target-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .target-card {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+      padding: 12px;
+      cursor: pointer;
+    }
+
+    .target-card[aria-current="true"] {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12);
+    }
+
+    .target-name {
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    .target-meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      min-height: 34px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .tab[aria-selected="true"] {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: white;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 190px;
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: var(--surface-2);
+    }
+
+    .metric-value {
+      font-size: 22px;
+      font-weight: 850;
+      margin-top: 4px;
+    }
+
+    .status {
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      background: #f8fbfb;
+      color: var(--muted);
+      margin-top: 12px;
+      min-height: 46px;
+    }
+
+    .status.success {
+      border-color: rgba(13, 148, 136, 0.35);
+      background: rgba(13, 148, 136, 0.08);
+      color: var(--accent-strong);
+    }
+
+    .status.error {
+      border-color: rgba(190, 18, 60, 0.3);
+      background: rgba(190, 18, 60, 0.08);
+      color: var(--danger);
+    }
+
+    .code {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #101719;
+      color: #d9fffb;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .history {
+      display: grid;
+      gap: 10px;
+    }
+
+    .history-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: white;
+      font-size: 13px;
+    }
+
+    .history-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .checklist li {
+      margin-bottom: 7px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1120px) {
+      .main {
+        grid-template-columns: 260px 1fr;
+      }
+
+      .right-panel {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .topbar,
+      .main {
+        display: block;
+      }
+
+      .topbar {
+        position: static;
+      }
+
+      .token-box,
+      .form-grid,
+      .metric-row {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        margin: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">S</div>
+        <div>
+          <h1>Spotitap Prototype Console</h1>
+          <p class="subtle">Hybrid test surface for backend and hardware integration</p>
+        </div>
+      </div>
+      <div class="token-box">
+        <input id="admin-token" type="password" autocomplete="off" placeholder="Admin token">
+        <button class="btn" id="save-token" type="button">Save Token</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Targets</div>
+            <p class="subtle">Counters linked to prototype devices</p>
+          </div>
+          <button class="btn" id="refresh-targets" type="button">Refresh</button>
+        </div>
+        <div class="panel-body">
+          <div id="target-list" class="target-list"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div class="tabs" role="tablist" aria-label="Console mode">
+            <button class="tab" role="tab" aria-selected="true" data-tab="internal" type="button">Internal</button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="provider" type="button">Provider Mode</button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="protocol" type="button">Protocol</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <section id="tab-internal">
+            <div class="metric-row">
+              <div class="metric">
+                <div class="subtle">Displayed</div>
+                <div class="metric-value" id="displayed-count">-</div>
+              </div>
+              <div class="metric">
+                <div class="subtle">Verified</div>
+                <div class="metric-value" id="verified-count">-</div>
+              </div>
+              <div class="metric">
+                <div class="subtle">Optimistic</div>
+                <div class="metric-value" id="optimistic-delta">-</div>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label for="target-count">Target Count</label>
+                <input id="target-count" inputmode="numeric" type="number" min="0" max="9999999" placeholder="1500">
+              </div>
+              <div class="field">
+                <label for="command-mode">Command Mode</label>
+                <select id="command-mode">
+                  <option value="verified">Verified count</option>
+                  <option value="test">Test count</option>
+                </select>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" id="send-count" type="button">Send Count To Device</button>
+            <div id="status" class="status">Load targets, select a counter, then send a test value.</div>
+
+            <h2 style="font-size:15px;margin:18px 0 10px">Payload Preview</h2>
+            <pre id="payload-preview" class="code"></pre>
+          </section>
+
+          <section id="tab-provider" class="hidden">
+            <h2 style="font-size:16px;margin-bottom:8px">Provider Test Mode</h2>
+            <p class="subtle">Use this when the prototype firmware is ready to connect to the broker and subscribe to its command topic.</p>
+            <div style="height:14px"></div>
+            <div class="code" id="provider-summary"></div>
+            <div style="height:14px"></div>
+            <div class="field" style="max-width:260px;margin-bottom:12px">
+              <label for="provider-target-count">Provider Test Count</label>
+              <input id="provider-target-count" inputmode="numeric" type="number" min="0" max="9999999" placeholder="1500">
+            </div>
+            <button class="btn btn-primary" id="provider-send" type="button">Send Provider Test Count</button>
+          </section>
+
+          <section id="tab-protocol" class="hidden">
+            <h2 style="font-size:16px;margin-bottom:8px">Device Protocol</h2>
+            <pre class="code">Topic:
+devices/{deviceId}/commands/set-count
+
+Payload:
+{
+  "counterId": "counter-id",
+  "target": 1500,
+  "reason": "verified_count",
+  "eventId": "verified-count",
+  "sentAt": "2026-05-22T00:00:00.000Z"
+}
+
+Expected firmware behavior:
+- connect to 2.4GHz WiFi
+- connect to MQTT with assigned credentials
+- subscribe to the set-count topic
+- parse target as a non-negative integer
+- animate the split-flap display to target
+- ignore duplicate eventId values when possible
+- reconnect automatically after WiFi or broker interruption</pre>
+          </section>
+        </div>
+      </section>
+
+      <aside class="panel right-panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Recent Commands</div>
+            <p class="subtle">Client-side history for this browser</p>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="history" class="history"></div>
+          <h3 style="font-size:14px;margin:18px 0 8px">Provider Checklist</h3>
+          <ul class="checklist">
+            <li>Firmware connects to the MQTT broker using assigned credentials.</li>
+            <li>Device subscribes to its exact `devices/{deviceId}/commands/set-count` topic.</li>
+            <li>Display moves to the `target` value without manual reset.</li>
+            <li>Device recovers after power loss and reconnects after network interruption.</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+    const state = {
+      targets: [],
+      selectedCounterId: '',
+      history: JSON.parse(localStorage.getItem('spotitap.prototype.history') || '[]')
+    };
+
+    const els = {
+      token: document.querySelector('#admin-token'),
+      saveToken: document.querySelector('#save-token'),
+      refreshTargets: document.querySelector('#refresh-targets'),
+      targetList: document.querySelector('#target-list'),
+      displayedCount: document.querySelector('#displayed-count'),
+      verifiedCount: document.querySelector('#verified-count'),
+      optimisticDelta: document.querySelector('#optimistic-delta'),
+      targetCount: document.querySelector('#target-count'),
+      commandMode: document.querySelector('#command-mode'),
+      providerTargetCount: document.querySelector('#provider-target-count'),
+      sendCount: document.querySelector('#send-count'),
+      providerSend: document.querySelector('#provider-send'),
+      status: document.querySelector('#status'),
+      payloadPreview: document.querySelector('#payload-preview'),
+      providerSummary: document.querySelector('#provider-summary'),
+      history: document.querySelector('#history'),
+      tabs: Array.from(document.querySelectorAll('.tab'))
+    };
+
+    els.token.value = localStorage.getItem('spotitap.adminToken') || '';
+
+    function selectedTarget() {
+      return state.targets.find((target) => target.counterId === state.selectedCounterId) || state.targets[0];
+    }
+
+    function setStatus(message, kind = '') {
+      els.status.textContent = message;
+      els.status.className = `status ${kind}`.trim();
+    }
+
+    function authHeaders() {
+      const token = els.token.value.trim();
+      return token ? { authorization: `Bearer ${token}` } : {};
+    }
+
+    function renderTargets() {
+      if (state.targets.length === 0) {
+        els.targetList.innerHTML = '<p class="subtle">No prototype targets loaded.</p>';
+        return;
+      }
+
+      els.targetList.innerHTML = state.targets.map((target) => `
+        <button class="target-card" type="button" data-counter-id="${target.counterId}" aria-current="${target.counterId === selectedTarget().counterId}">
+          <div class="target-name">${escapeHtml(target.label)}</div>
+          <div class="target-meta">${escapeHtml(target.platform)} / ${escapeHtml(target.status)}</div>
+          <div class="target-meta">${escapeHtml(target.deviceSerial)} / ${escapeHtml(target.deviceStatus)}</div>
+          <div class="target-meta">${escapeHtml(target.counterId)}</div>
+        </button>
+      `).join('');
+
+      els.targetList.querySelectorAll('[data-counter-id]').forEach((button) => {
+        button.addEventListener('click', () => {
+          state.selectedCounterId = button.dataset.counterId;
+          render();
+        });
+      });
+    }
+
+    function renderSelected() {
+      const target = selectedTarget();
+      if (!target) {
+        els.displayedCount.textContent = '-';
+        els.verifiedCount.textContent = '-';
+        els.optimisticDelta.textContent = '-';
+        els.payloadPreview.textContent = 'Load targets to preview a device payload.';
+        els.providerSummary.textContent = 'Load targets to view provider connection details.';
+        return;
+      }
+
+      els.displayedCount.textContent = String(target.displayedCount);
+      els.verifiedCount.textContent = String(target.verifiedCount);
+      els.optimisticDelta.textContent = String(target.optimisticDelta);
+      els.payloadPreview.textContent = JSON.stringify(buildPreviewPayload(target), null, 2);
+      els.providerSummary.textContent = [
+        `Device ID: ${target.deviceId}`,
+        `Device serial: ${target.deviceSerial}`,
+        `MQTT topic: devices/${target.deviceId}/commands/set-count`,
+        '',
+        JSON.stringify(buildPreviewPayload(target), null, 2)
+      ].join('\n');
+    }
+
+    function renderHistory() {
+      if (state.history.length === 0) {
+        els.history.innerHTML = '<p class="subtle">No commands sent from this browser yet.</p>';
+        return;
+      }
+
+      els.history.innerHTML = state.history.slice(0, 8).map((item) => `
+        <div class="history-item">
+          <div class="history-top">
+            <span>${escapeHtml(item.mode)}</span>
+            <span>${escapeHtml(item.status)}</span>
+          </div>
+          <div class="target-meta">${escapeHtml(item.label)} -> ${escapeHtml(String(item.target))}</div>
+          <div class="target-meta">${escapeHtml(item.sentAt)}</div>
+        </div>
+      `).join('');
+    }
+
+    function render() {
+      renderTargets();
+      renderSelected();
+      renderHistory();
+    }
+
+    function buildPreviewPayload(target) {
+      const count = Number.parseInt(els.targetCount.value || target.displayedCount || 0, 10);
+      const reason = els.commandMode.value === 'test' ? 'admin_test' : 'verified_count';
+      return {
+        topic: `devices/${target.deviceId}/commands/set-count`,
+        payload: {
+          counterId: target.counterId,
+          target: Number.isFinite(count) ? count : 0,
+          reason,
+          eventId: reason === 'admin_test' ? 'admin-test' : 'verified-count',
+          sentAt: new Date().toISOString()
+        }
+      };
+    }
+
+    async function loadTargets() {
+      try {
+        setStatus('Loading prototype targets...');
+        const response = await fetch('/admin/prototype-targets', {
+          headers: authHeaders()
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(body.error || `Request failed with ${response.status}`);
+        }
+
+        state.targets = body.targets || [];
+        state.selectedCounterId = state.selectedCounterId || state.targets[0]?.counterId || '';
+        render();
+        setStatus(`Loaded ${state.targets.length} prototype target(s).`, 'success');
+      } catch (error) {
+        setStatus(error.message || String(error), 'error');
+      }
+    }
+
+    async function sendCount() {
+      const target = selectedTarget();
+      if (!target) {
+        setStatus('Select a target before sending a count.', 'error');
+        return;
+      }
+
+      const activeTab = document.querySelector('.tab[aria-selected="true"]')?.dataset.tab || 'internal';
+      const countInput = activeTab === 'provider' ? els.providerTargetCount : els.targetCount;
+      const targetCount = Number.parseInt(countInput.value, 10);
+      if (!Number.isInteger(targetCount) || targetCount < 0 || targetCount > 9999999) {
+        setStatus('Target count must be an integer from 0 to 9999999.', 'error');
+        return;
+      }
+
+      const verified = activeTab === 'provider' ? false : els.commandMode.value === 'verified';
+      const endpoint = verified
+        ? `/admin/counters/${encodeURIComponent(target.counterId)}/verified-count`
+        : `/admin/counters/${encodeURIComponent(target.counterId)}/test-count`;
+      const payload = verified
+        ? { verifiedCount: targetCount, source: 'prototype_console' }
+        : { target: targetCount };
+
+      try {
+        setStatus('Sending command...');
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            ...authHeaders()
+          },
+          body: JSON.stringify(payload)
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(body.error || `Request failed with ${response.status}`);
+        }
+
+        rememberCommand({
+          mode: verified ? 'verified_count' : 'admin_test',
+          status: 'sent',
+          label: target.label,
+          target: targetCount,
+          sentAt: new Date().toLocaleString()
+        });
+        setStatus(`Command sent to ${target.deviceSerial}.`, 'success');
+        await loadTargets();
+      } catch (error) {
+        rememberCommand({
+          mode: verified ? 'verified_count' : 'admin_test',
+          status: 'failed',
+          label: target.label,
+          target: targetCount,
+          sentAt: new Date().toLocaleString()
+        });
+        renderHistory();
+        setStatus(error.message || String(error), 'error');
+      }
+    }
+
+    function rememberCommand(item) {
+      state.history = [item, ...state.history].slice(0, 20);
+      localStorage.setItem('spotitap.prototype.history', JSON.stringify(state.history));
+      renderHistory();
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    els.saveToken.addEventListener('click', () => {
+      localStorage.setItem('spotitap.adminToken', els.token.value.trim());
+      setStatus('Admin token saved in this browser.', 'success');
+      void loadTargets();
+    });
+    els.refreshTargets.addEventListener('click', () => void loadTargets());
+    els.sendCount.addEventListener('click', () => void sendCount());
+    els.providerSend.addEventListener('click', () => void sendCount());
+    els.targetCount.addEventListener('input', renderSelected);
+    els.providerTargetCount.addEventListener('input', () => {
+      if (els.providerTargetCount.value) {
+        els.targetCount.value = els.providerTargetCount.value;
+      }
+      renderSelected();
+    });
+    els.commandMode.addEventListener('change', renderSelected);
+    els.tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        els.tabs.forEach((item) => item.setAttribute('aria-selected', String(item === tab)));
+        ['internal', 'provider', 'protocol'].forEach((name) => {
+          document.querySelector(`#tab-${name}`).classList.toggle('hidden', tab.dataset.tab !== name);
+        });
+      });
+    });
+
+    render();
+    if (els.token.value.trim()) {
+      void loadTargets();
+    } else {
+      setStatus('Paste the admin token and save it to load prototype targets.');
+    }
+  </script>
+</body>
+</html>

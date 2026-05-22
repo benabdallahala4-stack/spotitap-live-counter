@@ -2,6 +2,7 @@ import cors from '@fastify/cors';
 import Fastify, { type FastifyInstance, type FastifyServerOptions } from 'fastify';
 import type { MqttPublisher } from './services/mqttPublisher.js';
 import { registerAdminRoutes, type AdminCountingPort } from './routes/adminRoutes.js';
+import { registerConsoleRoutes } from './routes/consoleRoutes.js';
 import { registerDeviceAdminRoutes, type DeviceAdminPort } from './routes/deviceAdminRoutes.js';
 import { registerProvisioningRoutes, type ProvisioningPort } from './routes/provisioningRoutes.js';
 import { registerPublicRoutes } from './routes/publicRoutes.js';
@@ -30,6 +31,7 @@ export async function createServer(options: ServerOptions): Promise<FastifyInsta
 
   app.get('/health', async () => ({ ok: true }));
 
+  await registerConsoleRoutes(app);
   await registerPublicRoutes(app, options);
   await registerAdminRoutes(app, options);
   await registerDeviceAdminRoutes(app, options);

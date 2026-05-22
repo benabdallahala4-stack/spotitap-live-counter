@@ -15,6 +15,8 @@ function createRepository(overrides: Partial<CounterRepository> = {}): CounterRe
     getCounterDeviceTarget: vi.fn(),
     saveCountSnapshot: vi.fn(),
     configureCounterSocialTarget: vi.fn(),
+    setVerifiedCount: vi.fn(),
+    listPrototypeTargets: vi.fn(),
     recordScanWithOptionalOptimisticIncrement: vi.fn(),
     ...overrides
   };
@@ -226,6 +228,47 @@ describe('createCountingService', () => {
       counterId: 'counter-1',
       destinationUrl: 'https://instagram.com/spotitap',
       platformDeepLink: 'instagram://user?username=spotitap'
+    });
+  });
+
+  it('delegates verified count reconciliation to the repository', async () => {
+    const repo = createRepository({
+      setVerifiedCount: vi.fn().mockResolvedValue({
+        counterId: 'counter-1',
+        deviceId: 'device-1',
+        displayedCount: 1500,
+        optimisticDelta: 0
+      })
+    });
+    const service = createCountingService(repo, {
+      optimisticTtlMinutes: 60,
+      fingerprintCooldownMinutes: 120
+    });
+
+    const result = await service.setVerifiedCount({
+      counterId: 'counter-1',
+      verifiedCount: 1500,
+      source: 'manual_admin',
+      rawPayload: {
+        verifiedCount: 1500,
+        source: 'manual_admin'
+      }
+    });
+
+    expect(result).toEqual({
+      counterId: 'counter-1',
+      deviceId: 'device-1',
+      displayedCount: 1500,
+      optimisticDelta: 0
+    });
+    expect(repo.setVerifiedCount).toHaveBeenCalledWith({
+      counterId: 'counter-1',
+      verifiedCount: 1500,
+      source: 'manual_admin',
+      rawPayload: {
+        verifiedCount: 1500,
+        source: 'manual_admin'
+      }
     });
   });
 });
